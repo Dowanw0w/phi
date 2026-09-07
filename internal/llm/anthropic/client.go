@@ -46,10 +46,10 @@ func BuildRequest(
 	system string,
 	messages []llm.Message,
 	tools []llm.ToolDefinition,
-) anthropicRequest {
+) AnthropicRequest {
 	cc := resolveCacheControl()
 
-	req := anthropicRequest{
+	req := AnthropicRequest{
 		Model:     cfg.Name,
 		MaxTokens: defaultMaxTokens,
 		Stream:    true,
@@ -215,7 +215,7 @@ func Stream(
 	ctx context.Context,
 	httpClient *http.Client,
 	cfg llm.ModelConfig,
-	req *anthropicRequest,
+	req *AnthropicRequest,
 ) iter.Seq2[llm.StreamEvent, error] {
 	return func(yield func(llm.StreamEvent, error) bool) {
 		body, err := json.Marshal(req)
@@ -435,7 +435,7 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 // Compact sends a single non-streaming request and returns the assistant
 // text. Satisfies llm.Compactor for session compaction on Claude.
 func Compact(ctx context.Context, httpClient *http.Client, cfg llm.ModelConfig, prompt string) (string, error) {
-	body, err := json.Marshal(anthropicRequest{
+	body, err := json.Marshal(AnthropicRequest{
 		Model:     cfg.Name,
 		MaxTokens: defaultMaxTokens,
 		Messages: []anthropicMessage{

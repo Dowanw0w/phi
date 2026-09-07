@@ -8,6 +8,7 @@ import (
 
 	"github.com/pulseaiclub/phi/internal/llm"
 	"github.com/pulseaiclub/phi/internal/llm/anthropic"
+	"github.com/pulseaiclub/phi/internal/llm/gemini"
 	"github.com/pulseaiclub/phi/internal/llm/openai"
 	"github.com/pulseaiclub/phi/internal/util"
 )
@@ -21,6 +22,7 @@ type Client struct {
 	tools      []llm.ToolDefinition
 	system     string
 	anthropic  bool
+	gemini     bool
 }
 
 // NewClient builds a streaming chat client.
@@ -31,6 +33,7 @@ func NewClient(cfg llm.ModelConfig, tools []llm.ToolDefinition, systemPrompt str
 		tools:      tools,
 		system:     systemPrompt,
 		anthropic:  isAnthropicProvider(cfg),
+		gemini:     isGeminiProvider(cfg),
 	}
 }
 
@@ -46,6 +49,17 @@ func (c *Client) Stream(ctx context.Context, messages []llm.Message) iter.Seq2[l
 			}
 			return
 		}
+
+		if c.gemini {
+			req := gemini.BuildRequest(c.system, messages, c.tools)
+			for ev, err := range gemini.Stream(ctx, c.httpClient, c.cfg, &req) {
+				if !yield(ev, err) {
+					return
+				}
+			}
+			return
+		}
+
 		req := openai.BuildRequest(c.cfg, c.system, messages, c.tools)
 		for ev, err := range openai.StreamChatCompletion(ctx, c.httpClient, c.cfg.BaseURL, c.cfg.APIKey, req) {
 			if !yield(ev, err) {
@@ -61,6 +75,9 @@ func (c *Client) Compact(ctx context.Context, prompt string) (string, error) {
 	if c.anthropic {
 		return anthropic.Compact(ctx, c.httpClient, c.cfg, prompt)
 	}
+	if c.gemini {
+		return gemini.Compact(ctx, c.httpClient, c.cfg, prompt)
+	}
 	return openai.Compact(ctx, c.httpClient, c.cfg, prompt)
 }
 
@@ -72,4 +89,16 @@ func isAnthropicProvider(cfg llm.ModelConfig) bool {
 		return true
 	}
 	return strings.HasPrefix(strings.ToLower(cfg.Name), "claude")
+}
+
+// isGeminiProvider reports a Gemini model or Google AI Studio base URL.
+func isGeminiProvider(cfg llm.ModelConfig) bool {
+	base := strings.ToLower(cfg.BaseURL)
+	name := strings.ToLower(cfg.Name)
+	if strings.Contains(base, "generativelanguage.googleapis.com") ||
+		strings.Contains(base, "aiplatform.googleapis.com") ||
+		strings.Contains(base, "cloudcode-pa.googleapis.com") {
+		return true
+	}
+	return strings.HasPrefix(name, "gemini") || strings.HasPrefix(name, "antigravity-")
 }
