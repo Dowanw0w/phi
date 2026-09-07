@@ -10,6 +10,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- Gemini endpoints (Google AI Studio / Vertex AI): streaming chat and compaction with tool calling, image input, system prompts, and model thinking surfaced as reasoning. (`llm`)
+
 ### Changed
 
 

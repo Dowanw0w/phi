@@ -7,7 +7,7 @@ type cacheControl struct {
 	TTL  string `json:"ttl,omitempty"`
 }
 
-type anthropicRequest struct {
+type AnthropicRequest struct {
 	Model     string             `json:"model"`
 	MaxTokens int                `json:"max_tokens"`
 	System    []sysBlock         `json:"system,omitempty"`
