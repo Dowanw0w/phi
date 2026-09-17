@@ -16,8 +16,9 @@ func TestMarshalToolParams(t *testing.T) {
 func TestAssistantDone(t *testing.T) {
 	ev := AssistantDone("hi", "think", []ToolCall{{ID: "1", Function: Function{Name: "read"}}}, Usage{TotalTokens: 3})
 	assert.Equal(t, StreamEventTypeDone, ev.Type)
-	assert.Equal(t, "hi", ev.Partial.Choices[0].Message.Content)
-	assert.Equal(t, "think", ev.Partial.Choices[0].Message.ReasoningContent)
-	assert.Equal(t, 3, ev.Partial.Usage.TotalTokens)
-	assert.Len(t, ev.Partial.Choices[0].Message.ToolCalls, 1)
+	assert.NotNil(t, ev.Final)
+	assert.Equal(t, "hi", ev.Final.Content)
+	assert.Equal(t, "think", ev.Final.ReasoningContent)
+	assert.Equal(t, 3, ev.Final.Usage.TotalTokens)
+	assert.Len(t, ev.Final.ToolCalls, 1)
 }

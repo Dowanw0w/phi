@@ -59,7 +59,7 @@ func TestSessionPersistUsageRoundTrip(t *testing.T) {
 		Role:    llm.RoleAssistant,
 		Content: "done",
 		Usage: llm.Usage{
-			PromptTokens:        12,
+			PromptTokens:        7,
 			CompletionTokens:    7,
 			TotalTokens:         19,
 			PromptTokensDetails: &llm.PromptTokensDetails{CachedTokens: 5},
@@ -77,7 +77,7 @@ func TestSessionPersistUsageRoundTrip(t *testing.T) {
 	ctx := loaded.BuildContext()
 	require.Len(t, ctx, 1)
 	entry := ctx[0].(SessionMessageEntry)
-	assert.Equal(t, 12, entry.Usage.PromptTokens)
+	assert.Equal(t, 7, entry.Usage.PromptTokens)
 	assert.Equal(t, 7, entry.Usage.CompletionTokens)
 	assert.Equal(t, 19, entry.Usage.TotalTokens)
 	assert.Equal(t, 5, entry.Usage.CachedTokens())
@@ -96,7 +96,7 @@ func TestReplaySnapshotUsageAfterReload(t *testing.T) {
 		Role:    llm.RoleAssistant,
 		Content: "done",
 		Usage: llm.Usage{
-			PromptTokens:        12,
+			PromptTokens:        7,
 			CompletionTokens:    7,
 			TotalTokens:         19,
 			PromptTokensDetails: &llm.PromptTokensDetails{CachedTokens: 5},
@@ -109,7 +109,8 @@ func TestReplaySnapshotUsageAfterReload(t *testing.T) {
 
 	snap := ReplaySnapshot(loaded.BuildContext(), nil)
 	require.Len(t, snap.Messages, 2)
-	want := TokenUsage{PromptTokens: 12, CompletionTokens: 7, CachedTokens: 5, TotalTokens: 19}
+	want := TokenUsage{PromptTokens: 7, CompletionTokens: 7, CachedTokens: 5, TotalTokens: 19}
+	assert.Equal(t, 19, want.ContextTokens(), "buckets sum to the reported total")
 	assert.Equal(t, want, snap.Messages[1].Usage)
 	assert.Equal(t, want, snap.LastUsage())
 }

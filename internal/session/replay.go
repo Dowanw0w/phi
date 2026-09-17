@@ -1,10 +1,6 @@
 package session
 
-import (
-	"strings"
-
-	"github.com/pulseaiclub/phi/internal/llm"
-)
+import "github.com/pulseaiclub/phi/internal/llm"
 
 // ToolDetail resolves a friendly one-line display detail for a tool call's raw
 // JSON arguments, mirroring the live executor's DetailFromArgs. It returns ""
@@ -59,37 +55,41 @@ func replayEntry(snap Snapshot, entry SessionMessageEntry, detail ToolDetail) Sn
 }
 
 // replayAssistant converts a persisted assistant llm.Message into a session
-// Message. Tool calls become tool_use content blocks so the snapshot carries
-// the same tool runs (and thus styled tool rows) as the original turn. Token
-// usage comes from the entry, not the llm.Message: usage is not serialized
-// inside llm.Message, so a reloaded session only has it on the entry.
+// Message. Usage comes from the entry because it is persisted separately.
 func replayAssistant(id string, entry SessionMessageEntry, detail ToolDetail) Message {
 	msg := entry.Message
-	text := msg.Content
-	var blocks []ContentBlock
-	if strings.TrimSpace(msg.ReasoningContent) != "" {
+	reason := StopNone
+	if len(msg.ToolCalls) > 0 {
+		reason = StopToolUse
+	}
+	return ProjectAssistant(id, msg, detail, StateComplete, reason, TokenUsageFrom(entry.Usage))
+}
+
+// ProjectAssistant converts a complete model message into the transcript shape.
+// Keeping this projection here makes live rendering and replay use the same
+// content block and tool argument rules.
+func ProjectAssistant(
+	id string,
+	msg llm.Message,
+	detail ToolDetail,
+	state State,
+	reason StopReason,
+	usage TokenUsage,
+) Message {
+	blocks := make([]ContentBlock, 0, 2+len(msg.ToolCalls))
+	if msg.ReasoningContent != "" {
 		blocks = append(blocks, ContentBlock{Type: BlockThinking, Text: msg.ReasoningContent})
 	}
-	if text != "" {
-		blocks = append(blocks, ContentBlock{Type: BlockText, Text: text})
+	if msg.Content != "" {
+		blocks = append(blocks, ContentBlock{Type: BlockText, Text: msg.Content})
 	}
 	for _, call := range msg.ToolCalls {
 		blocks = append(blocks, ContentBlock{
-			Type:     BlockToolUse,
-			ID:       call.ID,
-			Name:     call.Function.Name,
-			Input:    replayToolInput(call, detail),
-			Complete: true,
+			Type: BlockToolUse, ID: call.ID, Name: call.Function.Name,
+			Input: replayToolInput(call, detail), Complete: true,
 		})
 	}
-	return Message{
-		ID:         id,
-		State:      StateComplete,
-		StopReason: replayStopReason(blocks),
-		Text:       text,
-		Content:    blocks,
-		Usage:      TokenUsageFrom(entry.Usage),
-	}
+	return Message{ID: id, State: state, StopReason: reason, Text: msg.Content, Content: blocks, Usage: usage}
 }
 
 // replayToolInput prefers the friendly detail (matching the live turn) and
@@ -101,13 +101,4 @@ func replayToolInput(call llm.ToolCall, detail ToolDetail) string {
 		}
 	}
 	return call.Function.Arguments
-}
-
-func replayStopReason(blocks []ContentBlock) StopReason {
-	for _, b := range blocks {
-		if b.Type == BlockToolUse {
-			return StopToolUse
-		}
-	}
-	return StopNone
 }

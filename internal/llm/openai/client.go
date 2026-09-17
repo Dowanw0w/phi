@@ -68,7 +68,52 @@ type ThinkingConfig struct {
 
 type streamChunk struct {
 	Choices []streamChoice `json:"choices"`
-	Usage   *llm.Usage     `json:"usage,omitempty"`
+	Usage   *usageWire     `json:"usage,omitempty"`
+}
+
+// usageWire is the provider's usage block. Vendors disagree on where cache hits
+// live: OpenAI nests them under prompt_tokens_details, DeepSeek and Kimi report
+// prompt_cache_hit_tokens, and OpenRouter-compatible providers add
+// cache_write_tokens. prompt_tokens covers all of them, so the buckets are split
+// out here before the counts reach the rest of the program.
+type usageWire struct {
+	PromptTokens         int               `json:"prompt_tokens"`
+	CompletionTokens     int               `json:"completion_tokens"`
+	PromptCacheHitTokens int               `json:"prompt_cache_hit_tokens"`
+	PromptTokensDetails  *usageWireDetails `json:"prompt_tokens_details"`
+}
+
+// usageWireDetails is the nested cache breakdown some vendors send.
+type usageWireDetails struct {
+	CachedTokens     int `json:"cached_tokens"`
+	CacheWriteTokens int `json:"cache_write_tokens"`
+}
+
+// normalizeUsage splits the wire usage into disjoint buckets: prompt_tokens is
+// the whole prompt, so cache reads and writes come out of it. The total is
+// recomputed instead of trusted, because providers that report a gross
+// prompt_tokens disagree about what their total_tokens already includes.
+func normalizeUsage(w usageWire) llm.Usage {
+	cacheRead := w.PromptCacheHitTokens
+	cacheWrite := 0
+	if d := w.PromptTokensDetails; d != nil {
+		// Providers that send both fields agree; take the larger so a real hit
+		// count is never dropped.
+		cacheRead = max(cacheRead, d.CachedTokens)
+		cacheWrite = d.CacheWriteTokens
+	}
+	usage := llm.Usage{
+		CompletionTokens: w.CompletionTokens,
+		PromptTokens:     max(w.PromptTokens-cacheRead-cacheWrite, 0),
+	}
+	if cacheRead > 0 || cacheWrite > 0 {
+		usage.PromptTokensDetails = &llm.PromptTokensDetails{
+			CachedTokens:     cacheRead,
+			CacheWriteTokens: cacheWrite,
+		}
+	}
+	usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens + usage.CachedTokens() + usage.CacheWriteTokens()
+	return usage
 }
 
 type streamChoice struct {
@@ -251,7 +296,7 @@ func StreamChatCompletion(
 			return
 		}
 
-		out := llm.Response{}
+		var usage llm.Usage
 		acc := newStreamAccumulator()
 
 		for data, parseErr := range util.ParseDataStream(httpResp.Body) {
@@ -276,7 +321,7 @@ func StreamChatCompletion(
 				continue
 			}
 			if chunk.Usage != nil {
-				out.Usage = *chunk.Usage
+				usage = normalizeUsage(*chunk.Usage)
 			}
 			if len(chunk.Choices) == 0 {
 				continue
@@ -291,9 +336,9 @@ func StreamChatCompletion(
 
 			if hasStreamDelta(delta, sc.Message) {
 				if !yield(llm.StreamEvent{
-					Type:    llm.StreamEventTypeDelta,
-					Delta:   delta,
-					Partial: llm.Response{Usage: out.Usage},
+					Type:  llm.StreamEventTypeDelta,
+					Delta: delta,
+					Usage: usage,
 				}, nil) {
 					return
 				}
@@ -301,8 +346,8 @@ func StreamChatCompletion(
 		}
 
 		msg := acc.message()
-		out.Choices = []llm.Choice{{Message: msg}}
-		yield(llm.StreamEvent{Type: llm.StreamEventTypeDone, Partial: out}, nil)
+		msg.Usage = usage
+		yield(llm.StreamEvent{Type: llm.StreamEventTypeDone, Final: &msg}, nil)
 	}
 }
 

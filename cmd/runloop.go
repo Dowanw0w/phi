@@ -305,9 +305,15 @@ type jsonlAssistant struct {
 	Usage    *jsonlUsage `json:"usage,omitempty"`
 }
 
+// jsonlUsage reports the disjoint buckets: prompt is the input that missed the
+// cache, so prompt+cached+cacheWrite is the whole prompt and total covers it
+// plus the reply. Without the cache fields a consumer would read prompt against
+// total and see a shortfall on every cached turn.
 type jsonlUsage struct {
 	Prompt     int `json:"prompt"`
 	Completion int `json:"completion"`
+	Cached     int `json:"cached,omitempty"`
+	CacheWrite int `json:"cacheWrite,omitempty"`
 	Total      int `json:"total"`
 }
 
@@ -347,6 +353,8 @@ func (enc *jsonlEncoder) event(ev session.Event) {
 			usage = &jsonlUsage{
 				Prompt:     m.Usage.PromptTokens,
 				Completion: m.Usage.CompletionTokens,
+				Cached:     m.Usage.CachedTokens,
+				CacheWrite: m.Usage.CacheWriteTokens,
 				Total:      m.Usage.TotalTokens,
 			}
 		}

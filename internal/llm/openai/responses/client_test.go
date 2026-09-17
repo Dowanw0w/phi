@@ -112,15 +112,17 @@ func TestStreamTextAndTools(t *testing.T) {
 
 	require.NotNil(t, done)
 	assert.Equal(t, "hello", text.String())
-	msg := done.Partial.Choices[0].Message
+	msg := done.Final
+	require.NotNil(t, msg)
 	assert.Equal(t, "hello", msg.Content)
 	require.Len(t, msg.ToolCalls, 1)
 	assert.Equal(t, "call_1|fc_1", msg.ToolCalls[0].ID)
 	assert.Equal(t, "bash", msg.ToolCalls[0].Function.Name)
 	assert.JSONEq(t, `{"cmd":"ls"}`, msg.ToolCalls[0].Function.Arguments)
-	assert.Equal(t, 8, done.Partial.Usage.PromptTokens) // 10 - 2 cached
-	assert.Equal(t, 2, done.Partial.Usage.CachedTokens())
-	assert.Equal(t, 15, done.Partial.Usage.TotalTokens)
+	assert.Equal(t, 8, msg.Usage.PromptTokens, "uncached input (10 - 2 cached)")
+	assert.Equal(t, 2, msg.Usage.CachedTokens())
+	assert.Equal(t, 15, msg.Usage.TotalTokens)
+	assert.Equal(t, 15, msg.Usage.ContextTokens())
 }
 
 func TestCompactRequest(t *testing.T) {

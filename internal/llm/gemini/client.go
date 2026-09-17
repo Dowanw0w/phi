@@ -361,9 +361,10 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 
 		u := ck.UsageMetadata
 		if u.TotalTokenCount > 0 || u.PromptTokenCount > 0 {
-			// Cached tokens are counted in promptTokenCount; split them out so
-			// input is net of cache reads.
-			usage.PromptTokens = u.PromptTokenCount - u.CachedContentTokenCount
+			// promptTokenCount includes the cached content, so the cached part is
+			// subtracted to leave the uncached bucket. Gemini bills no separate
+			// cache write, so that bucket stays empty.
+			usage.PromptTokens = max(u.PromptTokenCount-u.CachedContentTokenCount, 0)
 			usage.CompletionTokens = u.CandidatesTokenCount + u.ThoughtsTokenCount
 			usage.TotalTokens = u.TotalTokenCount
 			if u.CachedContentTokenCount > 0 {

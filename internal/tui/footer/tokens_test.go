@@ -18,6 +18,20 @@ func TestFormatContextLabel(t *testing.T) {
 	require.Empty(t, formatContextLabel(u, 0), "zero window should hide label")
 }
 
+// A cache-heavy turn is mostly cache reads, so the fill must count the whole
+// context (total, or the bucket sum) and not collapse to 0% of a 1M window.
+func TestFormatContextLabelCountsCachedPrompt(t *testing.T) {
+	// Gross prompt 35272 of which 33792 came from cache.
+	u := session.TokenUsage{
+		PromptTokens: 1480, CachedTokens: 33792, CompletionTokens: 1789, TotalTokens: 37061,
+	}
+	require.Equal(t, "3%/1.0M", formatContextLabel(u, 1_000_000))
+
+	// Same turn without a provider total: the buckets still size the window.
+	noTotal := session.TokenUsage{PromptTokens: 1480, CachedTokens: 33792, CompletionTokens: 1789}
+	require.Equal(t, "3%/1.0M", formatContextLabel(noTotal, 1_000_000))
+}
+
 func TestFormatUsageStats(t *testing.T) {
 	got := formatUsageStats(session.TokenUsage{
 		PromptTokens:     1200,
@@ -25,13 +39,22 @@ func TestFormatUsageStats(t *testing.T) {
 		TotalTokens:      2000,
 	})
 	require.Equal(t, "↑1.2k ↓800 Σ2.0k", got)
+
+	// Cache traffic is disjoint from ↑: the buckets sum to the total.
 	got = formatUsageStats(session.TokenUsage{
 		PromptTokens:     1200,
 		CompletionTokens: 800,
 		CachedTokens:     900,
-		TotalTokens:      2000,
+		CacheWriteTokens: 100,
+		TotalTokens:      3000,
 	})
-	require.Equal(t, "↑1.2k ↓800 C900 Σ2.0k", got)
+	require.Equal(t, "↑1.2k ↓800 C900 W100 Σ3.0k", got)
+
+	// No reported total: Σ falls back to the bucket sum.
+	got = formatUsageStats(session.TokenUsage{
+		PromptTokens: 1200, CompletionTokens: 800, CachedTokens: 900,
+	})
+	require.Equal(t, "↑1.2k ↓800 C900 Σ2.9k", got)
 }
 
 func TestJoinBorderParts(t *testing.T) {

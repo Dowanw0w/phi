@@ -132,10 +132,15 @@ type Message struct {
 // PromptTokensDetails holds breakdown details for prompt token usage
 // (OpenAI-compatible prompt_tokens_details).
 type PromptTokensDetails struct {
-	CachedTokens int `json:"cached_tokens"`
+	CachedTokens     int `json:"cached_tokens"`
+	CacheWriteTokens int `json:"cache_write_tokens,omitempty"`
 }
 
-// Usage summarizes token consumption.
+// Usage summarizes token consumption as disjoint buckets. PromptTokens is the
+// input that missed the cache; cache reads and writes are reported separately,
+// so PromptTokens+CachedTokens+CacheWriteTokens is the whole prompt. Providers
+// that fold cache into their input count (OpenAI, Gemini) are split apart when
+// parsed, so PromptTokens never means "whole prompt" in this struct.
 type Usage struct {
 	CompletionTokens    int                  `json:"completion_tokens"`
 	PromptTokens        int                  `json:"prompt_tokens"`
@@ -151,15 +156,24 @@ func (u Usage) CachedTokens() int {
 	return u.PromptTokensDetails.CachedTokens
 }
 
-// Response is a completed chat completion.
-type Response struct {
-	Choices []Choice `json:"choices"`
-	Usage   Usage    `json:"usage"`
+// CacheWriteTokens returns cache-write tokens when the provider reported them.
+func (u Usage) CacheWriteTokens() int {
+	if u.PromptTokensDetails == nil {
+		return 0
+	}
+	return u.PromptTokensDetails.CacheWriteTokens
 }
 
-// Choice is one completion choice.
-type Choice struct {
-	Message Message `json:"message"`
+// ContextTokens is the size of the context this completion occupied: the
+// provider's total when it sent one, otherwise the sum of the buckets (they are
+// disjoint, so they add up to the prompt plus the reply). The context-fill
+// readout and the compaction threshold both size the window from here, so the
+// two cannot disagree about how full the context is.
+func (u Usage) ContextTokens() int {
+	if u.TotalTokens > 0 {
+		return u.TotalTokens
+	}
+	return u.PromptTokens + u.CompletionTokens + u.CachedTokens() + u.CacheWriteTokens()
 }
 
 // StreamDelta carries incremental content.
@@ -180,12 +194,14 @@ const (
 	StreamEventTypeError StreamEventType = "error"
 )
 
-// StreamEvent is yielded during streaming.
+// StreamEvent is yielded during streaming. Usage is available on intermediate
+// events when the provider reports it; Final is set only for a completed turn.
 type StreamEvent struct {
-	Type    StreamEventType `json:"type"`
-	Delta   StreamDelta     `json:"delta,omitempty"`
-	Partial Response        `json:"partial,omitempty"`
-	Err     string          `json:"err,omitempty"`
+	Type  StreamEventType `json:"type"`
+	Delta StreamDelta     `json:"delta,omitempty"`
+	Usage Usage           `json:"usage,omitempty"`
+	Final *Message        `json:"final,omitempty"`
+	Err   string          `json:"err,omitempty"`
 }
 
 // Object is a JSON-schema properties map.
