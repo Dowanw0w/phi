@@ -18,6 +18,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+### Security
+
+## [0.27.3] - 2026-09-17
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 - Token usage is four disjoint buckets end to end: `prompt` is the input that
   missed the cache, cache reads and writes are counted separately, and the
   context fill comes from the provider's total (or the bucket sum). Earlier the
@@ -618,7 +632,8 @@ Earlier releases are available from GitHub tags only.
 
 <!-- Released section ended -->
 
-[Unreleased]: https://github.com/pulseaiclub/phi/compare/v0.27.2...HEAD
+[Unreleased]: https://github.com/pulseaiclub/phi/compare/v0.27.3...HEAD
+[0.27.3]: https://github.com/pulseaiclub/phi/releases/tag/v0.27.3
 [0.27.2]: https://github.com/pulseaiclub/phi/releases/tag/v0.27.2
 [0.27.1]: https://github.com/pulseaiclub/phi/releases/tag/v0.27.1
 [0.27.0]: https://github.com/pulseaiclub/phi/releases/tag/v0.27.0
