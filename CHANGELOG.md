@@ -10,8 +10,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Add built-in `gpt-5.5` and `gpt-5.5-pro` presets using the OpenAI Responses API.
-
 ### Changed
 
 ### Deprecated
@@ -27,6 +25,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   at 0% of a 1M window, and Gemini, OpenAI Responses and OpenAI-compatible chat
   each split the cache out differently. Compaction now reads the same number the
   composer shows, and `phi run` emits the cache counts alongside `prompt`.
+
+### Security
+
+## [0.27.2] - 2026-09-16
+
+### Added
+
+- Add built-in `gpt-5.5` and `gpt-5.5-pro` presets using the OpenAI Responses API.
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 - Extension RPCs distinguish host requests from replies, bound blocked writes and
   shutdown, and terminate the plugin on in-flight cancellation or timeout.
 - Go and Rust SDKs preserve requests received during confirmation dialogs and
@@ -603,7 +618,8 @@ Earlier releases are available from GitHub tags only.
 
 <!-- Released section ended -->
 
-[Unreleased]: https://github.com/pulseaiclub/phi/compare/v0.27.1...HEAD
+[Unreleased]: https://github.com/pulseaiclub/phi/compare/v0.27.2...HEAD
+[0.27.2]: https://github.com/pulseaiclub/phi/releases/tag/v0.27.2
 [0.27.1]: https://github.com/pulseaiclub/phi/releases/tag/v0.27.1
 [0.27.0]: https://github.com/pulseaiclub/phi/releases/tag/v0.27.0
 [0.26.0]: https://github.com/pulseaiclub/phi/releases/tag/v0.26.0
