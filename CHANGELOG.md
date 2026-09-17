@@ -20,6 +20,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- Token usage is four disjoint buckets end to end: `prompt` is the input that
+  missed the cache, cache reads and writes are counted separately, and the
+  context fill comes from the provider's total (or the bucket sum). Earlier the
+  context fill was sized from the uncached input alone, so a cache-heavy turn sat
+  at 0% of a 1M window, and Gemini, OpenAI Responses and OpenAI-compatible chat
+  each split the cache out differently. Compaction now reads the same number the
+  composer shows, and `phi run` emits the cache counts alongside `prompt`.
 - Extension RPCs distinguish host requests from replies, bound blocked writes and
   shutdown, and terminate the plugin on in-flight cancellation or timeout.
 - Go and Rust SDKs preserve requests received during confirmation dialogs and

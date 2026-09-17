@@ -59,6 +59,69 @@ func TestBuildRequestNoImagesKeepsStringContent(t *testing.T) {
 	assert.Equal(t, `"hi"`, string(raw.Messages[0].Content))
 }
 
+// prompt_tokens is the whole prompt, so the parser splits cache reads and
+// writes out of it. Vendors disagree on which field carries the hits.
+func TestNormalizeUsageSplitsCacheBuckets(t *testing.T) {
+	t.Parallel()
+	tests := map[string]struct {
+		wire usageWire
+		want llm.Usage
+	}{
+		"openai details": {
+			wire: usageWire{
+				PromptTokens: 10, CompletionTokens: 5,
+				PromptTokensDetails: &usageWireDetails{CachedTokens: 4},
+			},
+			// 10 - 4 cached, plus the 5-token reply.
+			want: llm.Usage{
+				PromptTokens: 6, CompletionTokens: 5, TotalTokens: 15,
+				PromptTokensDetails: &llm.PromptTokensDetails{CachedTokens: 4},
+			},
+		},
+		"deepseek hit field": {
+			wire: usageWire{PromptTokens: 100, CompletionTokens: 20, PromptCacheHitTokens: 80},
+			want: llm.Usage{
+				PromptTokens: 20, CompletionTokens: 20, TotalTokens: 120,
+				PromptTokensDetails: &llm.PromptTokensDetails{CachedTokens: 80},
+			},
+		},
+		"cache write": {
+			wire: usageWire{
+				PromptTokens: 100, CompletionTokens: 10,
+				PromptTokensDetails: &usageWireDetails{CachedTokens: 30, CacheWriteTokens: 20},
+			},
+			want: llm.Usage{
+				PromptTokens: 50, CompletionTokens: 10, TotalTokens: 110,
+				PromptTokensDetails: &llm.PromptTokensDetails{CachedTokens: 30, CacheWriteTokens: 20},
+			},
+		},
+		"hit field and details agree": {
+			wire: usageWire{
+				PromptTokens: 100, CompletionTokens: 1, PromptCacheHitTokens: 60,
+				PromptTokensDetails: &usageWireDetails{CachedTokens: 60},
+			},
+			want: llm.Usage{
+				PromptTokens: 40, CompletionTokens: 1, TotalTokens: 101,
+				PromptTokensDetails: &llm.PromptTokensDetails{CachedTokens: 60},
+			},
+		},
+		"cache larger than prompt clamps at zero": {
+			wire: usageWire{
+				PromptTokens: 3, CompletionTokens: 1,
+				PromptTokensDetails: &usageWireDetails{CachedTokens: 9},
+			},
+			want: llm.Usage{
+				PromptTokens: 0, CompletionTokens: 1, TotalTokens: 10,
+				PromptTokensDetails: &llm.PromptTokensDetails{CachedTokens: 9},
+			},
+		},
+		"no usage": {wire: usageWire{}, want: llm.Usage{}},
+	}
+	for name, tt := range tests {
+		assert.Equal(t, tt.want, normalizeUsage(tt.wire), name)
+	}
+}
+
 func TestBuildRequestDoesNotInferDeepSeekExtraBody(t *testing.T) {
 	cfg := llm.ModelConfig{Name: "deepseek-flash", Think: llm.ThinkConfig{Enabled: true, Mode: llm.High}}
 	req := BuildRequest(cfg, "", []llm.Message{{Role: llm.RoleUser, Content: "hi"}}, nil)

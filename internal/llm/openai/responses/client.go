@@ -329,11 +329,14 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 		case "response.completed":
 			if ev.Response != nil && ev.Response.Usage != nil {
 				u := ev.Response.Usage
+				// input_tokens includes the cached input, so cached tokens are
+				// subtracted to leave the uncached bucket that the cache hit rate is
+				// read from.
 				cached := 0
 				if u.InputTokensDetails != nil {
 					cached = u.InputTokensDetails.CachedTokens
 				}
-				usage.PromptTokens = u.InputTokens - cached
+				usage.PromptTokens = max(u.InputTokens-cached, 0)
 				usage.CompletionTokens = u.OutputTokens
 				usage.TotalTokens = u.TotalTokens
 				if cached > 0 {

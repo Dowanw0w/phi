@@ -207,9 +207,10 @@ func TestProcessStreamTextAndUsage(t *testing.T) {
 	require.NotNil(t, msg)
 	assert.Equal(t, "Hello world", text.String())
 	assert.Equal(t, "Hello world", msg.Content)
-	assert.Equal(t, 7, msg.Usage.PromptTokens)
+	assert.Equal(t, 7, msg.Usage.PromptTokens, "uncached input (12 - 5 cached)")
+	assert.Equal(t, 5, msg.Usage.CachedTokens())
 	assert.Equal(t, 10, msg.Usage.CompletionTokens)
-	assert.Equal(t, 22, msg.Usage.TotalTokens)
+	assert.Equal(t, 22, msg.Usage.ContextTokens(), "cached content stays in the context total")
 }
 
 func TestProcessStreamThinking(t *testing.T) {

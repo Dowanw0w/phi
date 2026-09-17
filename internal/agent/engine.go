@@ -379,8 +379,9 @@ func (engine *Engine) Loop(ctx context.Context, prompt string, opts LoopOpts) it
 					}
 					continue
 				}
-				// Turn finished — compact using this assistant's usage.
-				if _, err := engine.runCompact(ctx, yield, msg.Usage.TotalTokens, false); err != nil {
+				// Turn finished — compact using this assistant's usage. The
+				// threshold reads context size the same way the composer does.
+				if _, err := engine.runCompact(ctx, yield, msg.Usage.ContextTokens(), false); err != nil {
 					yield(nil, err)
 				}
 				return
@@ -539,27 +540,6 @@ func (engine *Engine) streamTurn(
 		session.TokenUsageFrom(final.Usage),
 	)}
 	return final, complete, nil
-}
-
-func (engine *Engine) toolCallsToBlocks(calls []llm.ToolCall) []session.ContentBlock {
-	if len(calls) == 0 {
-		return nil
-	}
-	out := make([]session.ContentBlock, 0, len(calls))
-	for _, c := range calls {
-		input := c.Function.Arguments
-		if d := engine.ToolDetail(c.Function.Name, c.Function.Arguments); d != "" {
-			input = d
-		}
-		out = append(out, session.ContentBlock{
-			Type:     session.BlockToolUse,
-			ID:       c.ID,
-			Name:     c.Function.Name,
-			Input:    input,
-			Complete: true,
-		})
-	}
-	return out
 }
 
 // ToolDetail resolves a friendly one-line detail for a tool call's raw JSON

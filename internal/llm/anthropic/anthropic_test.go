@@ -170,10 +170,13 @@ func TestProcessStreamTextAndUsage(t *testing.T) {
 	msg := done.Final
 	require.NotNil(t, msg)
 	require.Equal(t, "Hello world", msg.Content)
-	require.Equal(t, 962, msg.Usage.PromptTokens, "PromptTokens")
+	// Anthropic input_tokens is already net of cache reads and writes.
+	require.Equal(t, 12, msg.Usage.PromptTokens, "PromptTokens")
 	require.Equal(t, 7, msg.Usage.CompletionTokens, "CompletionTokens")
 	require.Equal(t, 969, msg.Usage.TotalTokens, "TotalTokens")
 	require.Equal(t, 900, msg.Usage.CachedTokens())
+	require.Equal(t, 50, msg.Usage.CacheWriteTokens())
+	require.Equal(t, 969, msg.Usage.ContextTokens(), "all buckets are the context")
 }
 
 func TestProcessStreamToolUseAndThinking(t *testing.T) {

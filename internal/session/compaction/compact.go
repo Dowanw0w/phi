@@ -108,7 +108,9 @@ func PrepareCompact(
 	fileOps := extractFileOperations(messagesToSummarize, pathEntries, preCompactionIndex)
 
 	lastUsage := getLastAssistantUsage(pathEntries)
-	tokenBefore := lastUsage.TotalTokens
+	// ContextTokens, not TotalTokens: a provider that omits the total still has
+	// usable buckets, and the marker must match what the readout shows.
+	tokenBefore := lastUsage.ContextTokens()
 
 	return &CompactionPreparation{
 		FirstKeptEntryId:     firstKeptEntryID,

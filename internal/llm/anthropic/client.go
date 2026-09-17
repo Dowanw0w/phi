@@ -331,12 +331,13 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 				continue
 			}
 			u := msg.Message.Usage
-			// Anthropic splits input into disjoint fields; OpenAI-shaped
-			// PromptTokens is the full prompt occupancy (cache is a subset).
-			usage.PromptTokens = u.InputTokens + u.CacheRead + u.CacheCreate
-			if u.CacheRead > 0 {
+			// Anthropic reports disjoint buckets already: input_tokens excludes
+			// both cache reads and cache writes, so it needs no splitting.
+			usage.PromptTokens = u.InputTokens
+			if u.CacheRead > 0 || u.CacheCreate > 0 {
 				usage.PromptTokensDetails = &llm.PromptTokensDetails{
-					CachedTokens: u.CacheRead,
+					CachedTokens:     u.CacheRead,
+					CacheWriteTokens: u.CacheCreate,
 				}
 			}
 
@@ -450,7 +451,8 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 		}
 	}
 
-	usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
+	// Anthropic sends no total; the buckets are disjoint, so they add up.
+	usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens + usage.CachedTokens() + usage.CacheWriteTokens()
 	yield(llm.AssistantDone(content.String(), reasoning.String(), toolCalls, usage), nil)
 }
 

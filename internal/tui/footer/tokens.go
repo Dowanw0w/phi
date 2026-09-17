@@ -67,12 +67,14 @@ func formatContextLabel(usage session.TokenUsage, window int) string {
 	return fmt.Sprintf("%d%%", pct)
 }
 
-// formatUsageStats builds "↑1.2k ↓800 C900 Σ2.0k" (empty when unknown).
+// formatUsageStats builds "↑1.2k ↓800 C900 W200 Σ3.0k" (empty when unknown).
+// The buckets are disjoint copies of the provider's: ↑ is the input that missed
+// the cache, C and W are the cache traffic, Σ their sum (or the reported total).
 func formatUsageStats(usage session.TokenUsage) string {
 	if !usage.Reported() {
 		return ""
 	}
-	parts := make([]string, 0, 4)
+	parts := make([]string, 0, 5)
 	if usage.PromptTokens > 0 {
 		parts = append(parts, "↑"+components.FormatTokens(usage.PromptTokens))
 	}
@@ -82,10 +84,10 @@ func formatUsageStats(usage session.TokenUsage) string {
 	if usage.CachedTokens > 0 {
 		parts = append(parts, "C"+components.FormatTokens(usage.CachedTokens))
 	}
-	total := usage.TotalTokens
-	if total <= 0 {
-		total = usage.PromptTokens + usage.CompletionTokens
+	if usage.CacheWriteTokens > 0 {
+		parts = append(parts, "W"+components.FormatTokens(usage.CacheWriteTokens))
 	}
+	total := usage.ContextTokens()
 	if total > 0 {
 		parts = append(parts, "Σ"+components.FormatTokens(total))
 	}

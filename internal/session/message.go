@@ -162,10 +162,13 @@ type Message struct {
 }
 
 // TokenUsage is a UI-facing copy of provider token counts for one completion.
+// The buckets mirror llm.Usage: PromptTokens is the input that missed the
+// cache, and the cached counts are separate rather than a subset.
 type TokenUsage struct {
 	PromptTokens     int
 	CompletionTokens int
-	CachedTokens     int // prompt cache reads (c in the composer)
+	CachedTokens     int // prompt cache reads (C in the composer)
+	CacheWriteTokens int // prompt cache writes (W in the composer)
 	TotalTokens      int
 }
 
@@ -175,22 +178,28 @@ func TokenUsageFrom(u llm.Usage) TokenUsage {
 		PromptTokens:     u.PromptTokens,
 		CompletionTokens: u.CompletionTokens,
 		CachedTokens:     u.CachedTokens(),
+		CacheWriteTokens: u.CacheWriteTokens(),
 		TotalTokens:      u.TotalTokens,
 	}
 }
 
 // Reported is true when the provider sent any non-zero token count.
 func (u TokenUsage) Reported() bool {
-	return u.TotalTokens > 0 || u.PromptTokens > 0 || u.CompletionTokens > 0 || u.CachedTokens > 0
+	return u.TotalTokens > 0 || u.PromptTokens > 0 || u.CompletionTokens > 0 ||
+		u.CachedTokens > 0 || u.CacheWriteTokens > 0
 }
 
-// ContextTokens is the best available estimate of tokens occupying the context
-// window (prefer prompt/input; fall back to total).
+// ContextTokens is the size of the context the last completion occupied: the
+// provider's total when it sent one, otherwise the sum of the disjoint buckets.
+// Deliberately not PromptTokens: that is only the uncached input, so a
+// cache-heavy turn would read as an almost empty window. Mirrors
+// llm.Usage.ContextTokens, and TestContextTokensMatchesProviderUsage keeps the
+// two from drifting apart.
 func (u TokenUsage) ContextTokens() int {
-	if u.PromptTokens > 0 {
-		return u.PromptTokens
+	if u.TotalTokens > 0 {
+		return u.TotalTokens
 	}
-	return u.TotalTokens
+	return u.PromptTokens + u.CompletionTokens + u.CachedTokens + u.CacheWriteTokens
 }
 
 // FlatText joins assistant text blocks.
