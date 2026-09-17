@@ -151,17 +151,6 @@ func (u Usage) CachedTokens() int {
 	return u.PromptTokensDetails.CachedTokens
 }
 
-// Response is a completed chat completion.
-type Response struct {
-	Choices []Choice `json:"choices"`
-	Usage   Usage    `json:"usage"`
-}
-
-// Choice is one completion choice.
-type Choice struct {
-	Message Message `json:"message"`
-}
-
 // StreamDelta carries incremental content.
 type StreamDelta struct {
 	Role             string     `json:"role,omitempty"`
@@ -180,12 +169,14 @@ const (
 	StreamEventTypeError StreamEventType = "error"
 )
 
-// StreamEvent is yielded during streaming.
+// StreamEvent is yielded during streaming. Usage is available on intermediate
+// events when the provider reports it; Final is set only for a completed turn.
 type StreamEvent struct {
-	Type    StreamEventType `json:"type"`
-	Delta   StreamDelta     `json:"delta,omitempty"`
-	Partial Response        `json:"partial,omitempty"`
-	Err     string          `json:"err,omitempty"`
+	Type  StreamEventType `json:"type"`
+	Delta StreamDelta     `json:"delta,omitempty"`
+	Usage Usage           `json:"usage,omitempty"`
+	Final *Message        `json:"final,omitempty"`
+	Err   string          `json:"err,omitempty"`
 }
 
 // Object is a JSON-schema properties map.

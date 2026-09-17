@@ -503,11 +503,10 @@ func (engine *Engine) streamTurn(
 			}
 
 		case llm.StreamEventTypeDone:
-			if len(event.Partial.Choices) == 0 {
-				return llm.Message{}, nil, errors.New("agent: stream finished with no assistant choice")
+			if event.Final == nil {
+				return llm.Message{}, nil, errors.New("agent: stream finished with no assistant message")
 			}
-			final = event.Partial.Choices[0].Message
-			final.Usage = event.Partial.Usage
+			final = *event.Final
 			gotDone = true
 			// Prefer fully accumulated message for the complete event.
 			if final.ReasoningContent != "" {
@@ -527,12 +526,18 @@ func (engine *Engine) streamTurn(
 		return llm.Message{}, nil, errors.New("agent: stream closed without assistant output")
 	}
 
-	blocks := engine.toolCallsToBlocks(final.ToolCalls)
 	reason := session.StopEndTurn
-	if len(blocks) > 0 {
+	if len(final.ToolCalls) > 0 {
 		reason = session.StopToolUse
 	}
-	complete := emitMessage(id, session.StateComplete, reason, thinking, text, blocks, final.Usage)
+	complete := session.AssistantMessageUpdate{Message: session.ProjectAssistant(
+		id,
+		final,
+		func(name, args string) string { return engine.ToolDetail(name, args) },
+		session.StateComplete,
+		reason,
+		session.TokenUsageFrom(final.Usage),
+	)}
 	return final, complete, nil
 }
 

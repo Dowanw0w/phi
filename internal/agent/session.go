@@ -231,13 +231,12 @@ func (s *Session) AddAssistant(assistant llm.Message, usage llm.Usage) error {
 }
 
 // AddFinalAssistant records the last assistant message when it carries text or tool_calls.
-func (s *Session) AddFinalAssistant(resp llm.Response) error {
-	if len(resp.Choices) == 0 {
+func (s *Session) AddFinalAssistant(final *llm.Message) error {
+	if final == nil {
 		return nil
 	}
-	final := resp.Choices[0].Message
 	if strings.TrimSpace(final.Content) == "" && len(final.ToolCalls) == 0 {
 		return nil
 	}
-	return s.AddAssistant(final, resp.Usage)
+	return s.AddAssistant(*final, final.Usage)
 }

@@ -167,12 +167,13 @@ func TestProcessStreamTextAndUsage(t *testing.T) {
 
 	require.Equal(t, "Hello world", text.String())
 	require.NotNil(t, done, "expected done event")
-	msg := done.Partial.Choices[0].Message
+	msg := done.Final
+	require.NotNil(t, msg)
 	require.Equal(t, "Hello world", msg.Content)
-	require.Equal(t, 962, done.Partial.Usage.PromptTokens, "PromptTokens")
-	require.Equal(t, 7, done.Partial.Usage.CompletionTokens, "CompletionTokens")
-	require.Equal(t, 969, done.Partial.Usage.TotalTokens, "TotalTokens")
-	require.Equal(t, 900, done.Partial.Usage.CachedTokens())
+	require.Equal(t, 962, msg.Usage.PromptTokens, "PromptTokens")
+	require.Equal(t, 7, msg.Usage.CompletionTokens, "CompletionTokens")
+	require.Equal(t, 969, msg.Usage.TotalTokens, "TotalTokens")
+	require.Equal(t, 900, msg.Usage.CachedTokens())
 }
 
 func TestProcessStreamToolUseAndThinking(t *testing.T) {
@@ -212,7 +213,8 @@ func TestProcessStreamToolUseAndThinking(t *testing.T) {
 
 	require.Equal(t, "let me think", thinking)
 	require.NotNil(t, done, "expected done event")
-	msg := done.Partial.Choices[0].Message
+	msg := done.Final
+	require.NotNil(t, msg)
 	require.Equal(t, "let me think", msg.ReasoningContent)
 	require.Len(t, msg.ToolCalls, 1)
 	tc := msg.ToolCalls[0]

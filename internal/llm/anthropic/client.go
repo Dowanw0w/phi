@@ -381,9 +381,9 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 			case "text_delta":
 				content.WriteString(block.Delta.Text)
 				if !yield(llm.StreamEvent{
-					Type:    llm.StreamEventTypeDelta,
-					Delta:   llm.StreamDelta{Content: block.Delta.Text},
-					Partial: llm.Response{Usage: usage},
+					Type:  llm.StreamEventTypeDelta,
+					Delta: llm.StreamDelta{Content: block.Delta.Text},
+					Usage: usage,
 				}, nil) {
 					return
 				}
@@ -391,9 +391,9 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 			case "thinking_delta":
 				reasoning.WriteString(block.Delta.Thinking)
 				if !yield(llm.StreamEvent{
-					Type:    llm.StreamEventTypeDelta,
-					Delta:   llm.StreamDelta{ReasoningContent: block.Delta.Thinking},
-					Partial: llm.Response{Usage: usage},
+					Type:  llm.StreamEventTypeDelta,
+					Delta: llm.StreamDelta{ReasoningContent: block.Delta.Thinking},
+					Usage: usage,
 				}, nil) {
 					return
 				}
@@ -417,7 +417,7 @@ func processStream(body io.Reader, yield func(llm.StreamEvent, error) bool) {
 							},
 						},
 					}},
-					Partial: llm.Response{Usage: usage},
+					Usage: usage,
 				}, nil) {
 					return
 				}

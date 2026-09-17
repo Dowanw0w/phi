@@ -23,16 +23,12 @@ func MarshalToolParams(params *FunctionParameters, empty string) json.RawMessage
 func AssistantDone(content, reasoning string, tools []ToolCall, usage Usage) StreamEvent {
 	return StreamEvent{
 		Type: StreamEventTypeDone,
-		Partial: Response{
-			Choices: []Choice{{
-				Message: Message{
-					Role:             RoleAssistant,
-					Content:          content,
-					ReasoningContent: reasoning,
-					ToolCalls:        tools,
-				},
-			}},
-			Usage: usage,
+		Final: &Message{
+			Role:             RoleAssistant,
+			Content:          content,
+			ReasoningContent: reasoning,
+			ToolCalls:        tools,
+			Usage:            usage,
 		},
 	}
 }

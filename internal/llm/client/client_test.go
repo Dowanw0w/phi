@@ -60,8 +60,8 @@ func TestClientStreamAnthropicEndToEnd(t *testing.T) {
 	}
 	require.Equal(t, "hi", text.String())
 	require.NotNil(t, done, "unexpected stream result")
-	require.Equal(t, "hi", done.Partial.Choices[0].Message.Content)
-	require.Equal(t, 5, done.Partial.Usage.TotalTokens)
+	require.Equal(t, "hi", done.Final.Content)
+	require.Equal(t, 5, done.Final.Usage.TotalTokens)
 }
 
 func TestClientStreamOpenAIEndToEnd(t *testing.T) {
@@ -99,8 +99,8 @@ func TestClientStreamOpenAIEndToEnd(t *testing.T) {
 	}
 	require.Equal(t, "hello", text.String())
 	require.NotNil(t, done, "unexpected stream result")
-	require.Equal(t, "hello", done.Partial.Choices[0].Message.Content)
-	require.Equal(t, 6, done.Partial.Usage.TotalTokens)
+	require.Equal(t, "hello", done.Final.Content)
+	require.Equal(t, 6, done.Final.Usage.TotalTokens)
 }
 
 func TestClientStreamOpenAIResponsesEndToEnd(t *testing.T) {
@@ -139,8 +139,8 @@ func TestClientStreamOpenAIResponsesEndToEnd(t *testing.T) {
 	}
 	require.Equal(t, "hi", text.String())
 	require.NotNil(t, done)
-	require.Equal(t, "hi", done.Partial.Choices[0].Message.Content)
-	require.Equal(t, 4, done.Partial.Usage.TotalTokens)
+	require.Equal(t, "hi", done.Final.Content)
+	require.Equal(t, 4, done.Final.Usage.TotalTokens)
 }
 
 func TestClientCompactAnthropic(t *testing.T) {

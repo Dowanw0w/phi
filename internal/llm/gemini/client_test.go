@@ -203,12 +203,13 @@ func TestProcessStreamTextAndUsage(t *testing.T) {
 	}
 
 	require.NotNil(t, done, "expected done event")
-	msg := done.Partial.Choices[0].Message
+	msg := done.Final
+	require.NotNil(t, msg)
 	assert.Equal(t, "Hello world", text.String())
 	assert.Equal(t, "Hello world", msg.Content)
-	assert.Equal(t, 7, done.Partial.Usage.PromptTokens)
-	assert.Equal(t, 10, done.Partial.Usage.CompletionTokens)
-	assert.Equal(t, 22, done.Partial.Usage.TotalTokens)
+	assert.Equal(t, 7, msg.Usage.PromptTokens)
+	assert.Equal(t, 10, msg.Usage.CompletionTokens)
+	assert.Equal(t, 22, msg.Usage.TotalTokens)
 }
 
 func TestProcessStreamThinking(t *testing.T) {
@@ -235,7 +236,7 @@ func TestProcessStreamThinking(t *testing.T) {
 	}
 
 	require.NotNil(t, done, "expected done event")
-	msg := done.Partial.Choices[0].Message
+	msg := done.Final
 	assert.Equal(t, "answer", text.String())
 	assert.Equal(t, "let me think", reasoning.String())
 	assert.Equal(t, "answer", msg.Content)

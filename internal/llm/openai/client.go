@@ -251,7 +251,7 @@ func StreamChatCompletion(
 			return
 		}
 
-		out := llm.Response{}
+		var usage llm.Usage
 		acc := newStreamAccumulator()
 
 		for data, parseErr := range util.ParseDataStream(httpResp.Body) {
@@ -276,7 +276,7 @@ func StreamChatCompletion(
 				continue
 			}
 			if chunk.Usage != nil {
-				out.Usage = *chunk.Usage
+				usage = *chunk.Usage
 			}
 			if len(chunk.Choices) == 0 {
 				continue
@@ -291,9 +291,9 @@ func StreamChatCompletion(
 
 			if hasStreamDelta(delta, sc.Message) {
 				if !yield(llm.StreamEvent{
-					Type:    llm.StreamEventTypeDelta,
-					Delta:   delta,
-					Partial: llm.Response{Usage: out.Usage},
+					Type:  llm.StreamEventTypeDelta,
+					Delta: delta,
+					Usage: usage,
 				}, nil) {
 					return
 				}
@@ -301,8 +301,8 @@ func StreamChatCompletion(
 		}
 
 		msg := acc.message()
-		out.Choices = []llm.Choice{{Message: msg}}
-		yield(llm.StreamEvent{Type: llm.StreamEventTypeDone, Partial: out}, nil)
+		msg.Usage = usage
+		yield(llm.StreamEvent{Type: llm.StreamEventTypeDone, Final: &msg}, nil)
 	}
 }
 
