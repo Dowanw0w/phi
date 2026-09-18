@@ -23,7 +23,7 @@
 - **MCP 不炸上下文** — 随便配多少 MCP 服务器，工具 schema **绝不**进模型 prompt。系统提示只列 **server 名**（像 Skills 目录）；Agent 用三个元工具（`mcp_list` / `mcp_inspect` / `mcp_call`）按需发现再调用；权限仍走 Gate / Ask / Hooks。详见 [MCP](#mcp)
 - **扩展（Go 或 Rust）** — 原生二进制通过 stdin/stdout 讲 **PXB** 协议；官方作者 SDK：Go（[`ext/go`](ext/go)）+ 零依赖 Rust 移植（[`ext/rust`](ext/rust)）：LLM 工具、斜杠命令、事件拦截、确认对话框——无 JSON、无反射。详见 [Extensions（扩展）](#extensions扩展)
 - **TUI 内 diff 审阅** — `/diff` 全屏审阅 git 改动（工作区 / staged / HEAD）：语法高亮、行级批注，按 `a` 发给代理。详见 [Diff 审阅](#diff-审阅)
-- **任意模型** — 通过显式 `api` 字段支持 OpenAI 兼容、Anthropic、Gemini；内置 DeepSeek / Gemini preset。详见 [支持的模型](doc/models.md)
+- **任意模型** — 通过显式 `api` 字段支持 OpenAI 兼容、Anthropic、Gemini；对已知模型名（GPT / DeepSeek / Gemini / Kimi / GLM）内置 preset 自动补齐 endpoint、上下文窗口与能力。详见 [支持的模型](doc/models.md)
 
 ![phi 欢迎界面](assets/phi.png)
 
