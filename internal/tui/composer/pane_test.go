@@ -12,9 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulseaiclub/phi/internal/components"
+	"github.com/pulseaiclub/phi/internal/components/listpicker"
 	"github.com/pulseaiclub/phi/internal/components/mention"
 	"github.com/pulseaiclub/phi/internal/tui/commands"
 	"github.com/pulseaiclub/phi/internal/tui/controller"
+	"github.com/pulseaiclub/phi/internal/util/gitx"
 )
 
 // png1x1Base64 is a 1x1 transparent PNG (same fixture as util/image tests).
@@ -202,4 +204,54 @@ func submittedText(t *testing.T, bus *controller.Bus) string {
 		}
 	}
 	return out
+}
+
+func TestShowBranchListDrawsRowsAndRoutesAccept(t *testing.T) {
+	c := NewComposerPane(components.DefaultTheme(), "m", "/repo")
+	var accepted []string
+	c.ShowBranchList(
+		[]gitx.Branch{
+			{
+				Name: "main", Current: true, Upstream: "origin/main",
+				Committed: "3 hours ago", Subject: "init",
+			},
+			{Name: "fix/x", Ahead: 1, Subject: "wip"},
+		},
+		[]string{"fix/x"},
+		func(name string) { accepted = append(accepted, name) },
+	)
+
+	// 80 columns is the narrow end worth guarding: the branch name column must
+	// leave the commit subject visible.
+	overlay, ok := c.ListOverlay(components.DrawContext{
+		Max:    components.Size{Width: 80, Height: 24},
+		Method: xui.WidthUnicode,
+	})
+	require.True(t, ok)
+	text := components.SurfaceText(overlay.Surface)
+	assert.Contains(t, text, "Branches")
+	assert.Contains(t, text, "fix/x")
+	assert.Contains(t, text, "init", "the commit column is the second one")
+	assert.NotContains(t, text, "current", "two columns only — no badge column")
+	assert.NotContains(t, text, "origin/main", "no upstream column")
+
+	// The picker opens on the current branch, so Enter on an untouched list is
+	// the no-op the caller has to answer for.
+	c.listPicker.Handle(&components.EventContext{}, xui.KeyEvent{Press: true, Code: xui.KeyEnter})
+	assert.Equal(t, []string{"main"}, accepted)
+}
+
+func TestListAcceptHandlerIsNotSharedBetweenDomains(t *testing.T) {
+	c := NewComposerPane(components.DefaultTheme(), "m", "/repo")
+	var sessions, branches []string
+	c.ShowList(nil, listpicker.ShowConfig{}, func(item listpicker.Item) { sessions = append(sessions, item.ID) })
+	c.ShowBranchList([]gitx.Branch{{Name: "main", Current: true}}, nil, func(name string) {
+		branches = append(branches, name)
+	})
+
+	c.listPicker.Items = []listpicker.Item{{ID: "main", Badge: "current"}}
+	c.listPicker.Handle(&components.EventContext{}, xui.KeyEvent{Press: true, Code: xui.KeyEnter})
+
+	assert.Equal(t, []string{"main"}, branches)
+	assert.Empty(t, sessions, "opening a second picker must replace the first accept path")
 }

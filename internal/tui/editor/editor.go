@@ -8,9 +8,9 @@ import (
 
 	"github.com/pulseaiclub/phi/internal/components"
 	"github.com/pulseaiclub/phi/internal/components/app"
-	"github.com/pulseaiclub/phi/internal/components/listpicker"
 	"github.com/pulseaiclub/phi/internal/components/palette"
 	"github.com/pulseaiclub/phi/internal/components/toast"
+	"github.com/pulseaiclub/phi/internal/session"
 	"github.com/pulseaiclub/phi/internal/tui/commands"
 	"github.com/pulseaiclub/phi/internal/tui/composer"
 	"github.com/pulseaiclub/phi/internal/tui/controller"
@@ -155,13 +155,14 @@ func NewEditor(
 	builtins.Bind(
 		e.submitter,
 		func() commands.Context { return cmdCtx },
-		e.composer.ShowSessionList,
+		func(items []session.SessionMeta, currentID string) {
+			e.composer.ShowSessionList(items, currentID, e.sessions.Accept)
+		},
+		e.composer.ShowBranchList,
+		func() string { return e.cwd },
 		e.submitter.StreamActive,
 	)
 
-	e.composer.SetListPickHandler(func(item listpicker.Item) {
-		e.sessions.Accept(item.ID)
-	})
 	e.composer.Wire(
 		e.transcript,
 		e.submitter,

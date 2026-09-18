@@ -11,6 +11,7 @@ import (
 	"github.com/pulseaiclub/xui"
 
 	"github.com/pulseaiclub/phi/internal/components"
+	"github.com/pulseaiclub/phi/internal/components/branchlist"
 	"github.com/pulseaiclub/phi/internal/components/chat"
 	"github.com/pulseaiclub/phi/internal/components/layout"
 	"github.com/pulseaiclub/phi/internal/components/listpicker"
@@ -26,6 +27,7 @@ import (
 	"github.com/pulseaiclub/phi/internal/tui/transcript"
 	"github.com/pulseaiclub/phi/internal/util/clipboard"
 	"github.com/pulseaiclub/phi/internal/util/filesearch"
+	"github.com/pulseaiclub/phi/internal/util/gitx"
 	imgutil "github.com/pulseaiclub/phi/internal/util/image"
 )
 
@@ -40,7 +42,6 @@ type ComposerPane struct {
 	question   mention.Picker
 	palette    palette.CommandPalette
 	listPicker listpicker.Picker
-	onListPick func(listpicker.Item)
 
 	mentionGen int
 	// mentionCancel stops the search in flight; nil before the first search.
@@ -132,11 +133,6 @@ func (c *ComposerPane) Wire(
 
 	c.palette.FocusReturn = &c.Chat
 	c.listPicker.FocusReturn = &c.Chat
-	c.listPicker.OnAccept = func(item listpicker.Item) {
-		if c.onListPick != nil {
-			c.onListPick(item)
-		}
-	}
 	c.Chat.OnSubmit = func(text string) {
 		c.bus.Publish(controller.SubmitMsg{Text: text})
 		if c.drainBus != nil {
@@ -181,20 +177,20 @@ func (c *ComposerPane) HidePalette() {
 	}
 }
 
-// SetListPickHandler registers the callback for list picker Enter.
-func (c *ComposerPane) SetListPickHandler(fn func(listpicker.Item)) {
-	if c != nil {
-		c.onListPick = fn
-	}
-}
-
-// ShowList opens the opaque list picker overlay.
-func (c *ComposerPane) ShowList(items []listpicker.Item, cfg listpicker.ShowConfig) {
+// ShowList opens the opaque list picker overlay. Each caller passes its own
+// onAccept: the picker is a single instance, so a shared handler would leak one
+// domain's accept path into another's.
+func (c *ComposerPane) ShowList(
+	items []listpicker.Item,
+	cfg listpicker.ShowConfig,
+	onAccept func(listpicker.Item),
+) {
 	if c == nil {
 		return
 	}
 	c.HideCompleters()
 	c.HidePalette()
+	c.listPicker.OnAccept = onAccept
 	c.listPicker.Show(items, cfg)
 	if c.requestFocus != nil {
 		c.requestFocus(&c.listPicker)
@@ -205,11 +201,35 @@ func (c *ComposerPane) ShowList(items []listpicker.Item, cfg listpicker.ShowConf
 }
 
 // ShowSessionList maps sessions into list rows and opens the picker.
-func (c *ComposerPane) ShowSessionList(items []session.SessionMeta, currentID string) {
+func (c *ComposerPane) ShowSessionList(
+	items []session.SessionMeta,
+	currentID string,
+	onAccept func(id string),
+) {
 	if c == nil {
 		return
 	}
-	c.ShowList(sessionlist.Items(items, currentID, time.Time{}), sessionlist.Config())
+	c.ShowList(sessionlist.Items(items, currentID, time.Time{}), sessionlist.Config(), func(item listpicker.Item) {
+		if onAccept != nil {
+			onAccept(item.ID)
+		}
+	})
+}
+
+// ShowBranchList maps git branches into list rows and opens the picker.
+func (c *ComposerPane) ShowBranchList(
+	branches []gitx.Branch,
+	recent []string,
+	onAccept func(name string),
+) {
+	if c == nil {
+		return
+	}
+	c.ShowList(branchlist.Items(branches, recent), branchlist.Config(), func(item listpicker.Item) {
+		if onAccept != nil {
+			onAccept(item.ID)
+		}
+	})
 }
 
 // ListOverlay returns the list picker surface when open.
