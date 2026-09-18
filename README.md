@@ -23,7 +23,7 @@ A lean, high-performance terminal coding agent harness in Go — a sibling to Pi
 - **MCP without context death** — configure as many MCP servers as you want; their tool schemas **never** enter the model prompt. The system prompt lists **server names** only (like the Skills catalog); the agent uses three meta-tools (`mcp_list` / `mcp_inspect` / `mcp_call`) to discover and call on demand. Same Gate / Ask / Hooks path as built-in tools. See [MCP](#mcp)
 - **Extensions (Go or Rust)** — native binaries speak the **PXB** binary protocol over stdin/stdout; official author SDKs for Go ([`ext/go`](ext/go)) and Rust ([`ext/rust`](ext/rust)): LLM tools, slash commands, event intercepts, confirm dialogs — no reflection; JSON at the SDK edges via `serde_json`. See [Extensions](#extensions)
 - **In-TUI diff review** — `/diff` opens a full-screen git review (working tree / staged / HEAD): syntax-highlighted hunks, line notes, then `a` sends notes to the agent. See [Diff review](#diff-review)
-- **Any model** — OpenAI-compatible, Anthropic, or Gemini via an explicit `api` field; built-in presets for DeepSeek and Gemini. See [Supported models](doc/models.md)
+- **Any model** — OpenAI-compatible, Anthropic, or Gemini via an explicit `api` field; built-in presets fill endpoint, context window, and capabilities for known model names (GPT, DeepSeek, Gemini, Kimi, GLM). See [Supported models](doc/models.md)
 
 ![phi welcome](assets/phi.png)
 
