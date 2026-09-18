@@ -255,7 +255,7 @@ syntax highlighting. Structural markers (`#`, `` ` ``, `*`) are stripped.
 The editor supports:
 
 - `@` — fuzzy file mention picker (type `@` and start typing a path)
-- `/` — slash command picker (`/sessions`, `/clear`, `/diff`)
+- `/` — slash command picker (`/sessions`, `/branch`, `/clear`, `/diff`)
 - `?` — shortcut help picker (lists `/`, `!`, `@`, and key bindings; `Esc` closes)
 - `!command` — run a shell command locally and stream its output into the
   transcript (see [Commands](#commands))
@@ -291,6 +291,26 @@ Slash-picker Enter inserts `/diff` plus a trailing space into the composer; subm
 `s` side-by-side, `i` add/edit a note, `x` delete, `a` send notes to the agent,
 `?` help, `q` / `Esc` close. Notes persist under `.phi/review.json`.
 
+## Branch switching
+
+`/branch` opens the branch picker for the working directory. Two columns: the
+branch name, and its most recent commit. A `●` marks the branch HEAD is on. Rows
+are ordered where you are, where you came from (git reflog), the other local
+branches, then remote-tracking branches.
+
+Enter runs `git switch` on the selected row — off the UI goroutine, so a slow
+checkout does not freeze the composer. Picking a remote row checks out the local
+branch that tracks it, the same thing `git switch feat` does for `origin/feat`.
+
+`/branch <name>` skips the picker: it switches to that branch, or creates it
+from HEAD when no branch carries the name yet. Naming is the whole "new branch"
+flow — three characters typed beat a form.
+
+Uncommitted work is never touched: git refuses rather than lose it, and its
+reason is toasted verbatim. Switching is blocked while a reply or command is
+running, and while a merge, rebase, cherry-pick, revert, or bisect is
+unfinished.
+
 ## Commands
 
 | Command            | Description                                   |
@@ -301,6 +321,7 @@ Slash-picker Enter inserts `/diff` plus a trailing space into the composer; subm
 | `phi update --check` | Query the latest release without installing |
 | `phi sessions list`| List persisted sessions for this directory    |
 | `/sessions`        | List sessions for this directory (TUI)        |
+| `/branch`          | Switch the working branch — see [Branch switching](#branch-switching) |
 | `/clear`           | Start a fresh empty session (TUI)             |
 | `/diff`            | Full-screen git review — see [Diff review](#diff-review) |
 | `!command`         | Run a shell command locally, stream output into the transcript; `Esc` cancels it |
