@@ -67,7 +67,7 @@ func TestNewBuiltinRegistry_RegistersDomains(t *testing.T) {
 	assert.True(t, ids["extensions"])
 	assert.True(t, ids["skills"])
 
-	assert.Equal(t, "/branch", b.Registry.LookupInsert("branch"))
+	assert.Equal(t, "/branch ", b.Registry.LookupInsert("branch"))
 
 	assert.True(t, b.Registry.DispatchSlash("/diff staged", ctx))
 	assert.Equal(t, []string{"staged"}, opened)

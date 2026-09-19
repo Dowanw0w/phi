@@ -2,6 +2,7 @@
 package editor
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pulseaiclub/xui"
@@ -62,7 +63,7 @@ func NewEditor(
 	ctrl *controller.EngineController,
 	vx *xui.XUI,
 	theme components.Theme,
-	cwd, model, skillPath string,
+	cwd, model, thinkMode, skillPath string,
 	contextWindow int,
 	modelNames []string,
 ) *Editor {
@@ -74,7 +75,7 @@ func NewEditor(
 		bus:      bus,
 		ctrl:     ctrl,
 		toast:    toast.Toast{Theme: theme},
-		composer: composer.NewComposerPane(theme, model, cwd),
+		composer: composer.NewComposerPane(theme, fmt.Sprintf("%s::%s", model, thinkMode), cwd),
 		footer:   footer.NewFooterChrome(theme, contextWindow),
 	}
 	e.transcript = transcript.NewTranscriptPane(theme, e.footer.Spinner(), "Phi "+version.Version)
