@@ -67,11 +67,11 @@ type ComposerPane struct {
 }
 
 // NewComposerPane builds composer widgets; call Wire before use.
-func NewComposerPane(theme components.Theme, model, cwd string) *ComposerPane {
+func NewComposerPane(theme components.Theme, modelLabel, cwd string) *ComposerPane {
 	return &ComposerPane{
 		theme: theme,
 		cwd:   cwd,
-		Chat:  newChatInput(theme, model, cwd),
+		Chat:  newChatInput(theme, modelLabel, cwd),
 		mention: mention.Picker{
 			Theme: theme,
 		},
@@ -364,11 +364,10 @@ func (c *ComposerPane) SetModelLabel(name, thinkLevel string) {
 	}
 	id := c.theme.IdentityOrSuccess()
 	if thinkLevel != "" && thinkLevel != "off" {
-		chrome := footer.ChromeLabelStyle(c.theme)
 		c.Chat.TopRightLabel = layout.BorderLabel{
 			Spans: []layout.BorderSpan{
 				{Text: name, Style: id},
-				{Text: " • ", Style: chrome},
+				{Text: "::", Style: id},
 				{Text: thinkLevel, Style: id},
 			},
 		}
@@ -1014,7 +1013,7 @@ func (c *ComposerPane) slashTarget(item mention.Item) (start, end int, insert st
 	return start, end, insert
 }
 
-func newChatInput(theme components.Theme, model, cwd string) chat.ChatInput {
+func newChatInput(theme components.Theme, modelLabel, cwd string) chat.ChatInput {
 	return chat.ChatInput{
 		MinBodyRows:    3,
 		MaxBodyRows:    8,
@@ -1025,7 +1024,7 @@ func newChatInput(theme components.Theme, model, cwd string) chat.ChatInput {
 		TextStyle:      theme.Foreground,
 		CursorStyle:    xui.Style{Reverse: true},
 		TopRightLabel: layout.BorderLabel{
-			Text:  model,
+			Text:  modelLabel,
 			Style: theme.IdentityOrSuccess(),
 		},
 		BottomRightLabel: layout.BorderLabel{

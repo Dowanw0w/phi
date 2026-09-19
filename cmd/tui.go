@@ -80,6 +80,12 @@ func runTUI() error {
 		return exitCode(ExitError)
 	}
 	defer ctrl.Close()
+
+	thinkMode := ""
+	if cfg.Think.Enabled {
+		thinkMode = string(cfg.Think.Mode)
+	}
+
 	ui := editor.NewEditor(
 		application,
 		bus,
@@ -88,6 +94,7 @@ func runTUI() error {
 		th,
 		cwd,
 		cfg.Name,
+		thinkMode,
 		cfg.SkillPath,
 		cfg.ContextWindow,
 		modelNames,
