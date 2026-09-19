@@ -43,7 +43,7 @@ internal/tui/
 ├── overlays/               # permission + continue ask
 ├── diffpane/               # git diff review overlay (`/diff`)
 ├── submit/                 # Submitter, BashRunner
-├── commands/               # registry, builtins, SessionCommands, ExtCommands
+├── commands/               # registry, builtins, SessionCommands, BranchCommands, ExtCommands
 └── pathutil/               # short path + git branch labels
 ```
 
@@ -82,9 +82,9 @@ app.Run(ui)
 ```
 
 Inside `NewEditor`, panes are built first, then `commands.NewBuiltinRegistry`
-assembles the registry and domain handlers (`SessionCommands`, `ExtCommands`,
-settings/skills/diff). `Builtin.Bind` attaches Submitter / picker / stream
-guard after `Submitter` exists. `ComposerPane.Wire(...)` connects the keyboard
+assembles the registry and domain handlers (`SessionCommands`, `BranchCommands`,
+`ExtCommands`, settings/skills/diff). `Builtin.Bind` attaches Submitter / pickers /
+stream guard after `Submitter` exists. `ComposerPane.Wire(...)` connects the keyboard
 path last.
 
 `Editor` does **not** call `project.GetDefaultProject` or construct `Controller`.

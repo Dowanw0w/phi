@@ -6,6 +6,7 @@ import (
 	"github.com/pulseaiclub/phi/internal/tui/controller"
 	"github.com/pulseaiclub/phi/internal/tui/footer"
 	"github.com/pulseaiclub/phi/internal/tui/transcript"
+	"github.com/pulseaiclub/phi/internal/util/gitx"
 )
 
 // BuiltinComposer is the composer surface builtin domains need.
@@ -20,6 +21,7 @@ type BuiltinComposer interface {
 type Builtin struct {
 	Registry *CommandRegistry
 	Sessions *SessionCommands
+	Branches *BranchCommands
 	Ext      *ExtCommands
 }
 
@@ -44,6 +46,7 @@ func NewBuiltinRegistry(
 		Bus:      bus,
 	}
 	sessions := NewSessionCommands(ctrl, tr, ft, bus, ext.Sync)
+	branches := NewBranchCommands(bus)
 	settings := &SettingsCommands{
 		Ctrl:       ctrl,
 		Bus:        bus,
@@ -57,19 +60,22 @@ func NewBuiltinRegistry(
 	diff := &DiffCommands{Open: openDiff}
 
 	sessions.Register(r)
+	branches.Register(r)
 	settings.Register(r)
 	ext.Register(r)
 	skills.Register(r)
 	diff.Register(r)
 
-	return &Builtin{Registry: r, Sessions: sessions, Ext: ext}
+	return &Builtin{Registry: r, Sessions: sessions, Branches: branches, Ext: ext}
 }
 
-// Bind attaches late UI collaborators (Submitter, picker, stream guard).
+// Bind attaches late UI collaborators (Submitter, pickers, stream guard).
 func (b *Builtin) Bind(
 	submitter extSubmitter,
 	commandCtx func() Context,
 	openPicker func(items []session.SessionMeta, currentID string),
+	openBranchPicker func(branches []gitx.Branch, recent []string, onAccept func(name string)),
+	cwd func() string,
 	streamActive func() bool,
 ) {
 	if b == nil {
@@ -82,5 +88,10 @@ func (b *Builtin) Bind(
 	if b.Sessions != nil {
 		b.Sessions.OpenPicker = openPicker
 		b.Sessions.StreamActive = streamActive
+	}
+	if b.Branches != nil {
+		b.Branches.OpenOverlay = openBranchPicker
+		b.Branches.Dir = cwd
+		b.Branches.StreamActive = streamActive
 	}
 }

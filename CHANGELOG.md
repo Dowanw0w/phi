@@ -10,6 +10,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `/branch`: pick a working branch from the composer — name and last commit
+  only, `●` for the current branch, Enter runs `git switch` off the UI goroutine
+  and the footer branch label refreshes immediately.
+- `/branch <name>`: switch to that branch, or create it from HEAD when nothing
+  carries the name yet. Remote rows check out the local branch that tracks them.
+
 ### Changed
 
 ### Deprecated

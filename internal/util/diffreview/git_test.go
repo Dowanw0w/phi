@@ -69,7 +69,7 @@ func TestLoadGitMissingRepo(t *testing.T) {
 	// git answers with a warning plus the whole `git diff` usage dump; the status
 	// bar gets the warning and the next step, not 4 KB of options.
 	assert.Contains(t, err.Error(), "Not a git repository")
-	assert.Contains(t, err.Error(), "open /diff inside the repo")
+	assert.Contains(t, err.Error(), "this directory is not a git repository")
 	assert.NotContains(t, err.Error(), "usage:")
 	assert.NotContains(t, err.Error(), "\n")
 	assert.Less(t, len(err.Error()), 300)

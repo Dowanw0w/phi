@@ -67,10 +67,12 @@ func TestNewBuiltinRegistry_RegistersDomains(t *testing.T) {
 	assert.True(t, ids["extensions"])
 	assert.True(t, ids["skills"])
 
+	assert.Equal(t, "/branch", b.Registry.LookupInsert("branch"))
+
 	assert.True(t, b.Registry.DispatchSlash("/diff staged", ctx))
 	assert.Equal(t, []string{"staged"}, opened)
 
-	b.Bind(nil, nil, nil, func() bool { return true })
+	b.Bind(nil, nil, nil, nil, nil, func() bool { return true })
 	b.Sessions.Clear()
 	assert.Contains(t, drainToast(t, bus), "Cannot clear")
 }
