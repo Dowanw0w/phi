@@ -18,11 +18,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
+- `/branch` completes with a trailing space, so typed arguments follow the command
+  name instead of gluing onto it.
+
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- The composer border label carries the active think mode: it reads `model::think`
+  when think is enabled, and just the model name when it is off.
 
 ### Security
 
